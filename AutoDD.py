@@ -208,8 +208,9 @@ def populate_df(current_scores_dict, prev_scores_dict):
             # pandas will insert NaN for missing symbols, which converts entire column to float
             # will use the below dict to convert these columns back to int
             dtype_dict[sub] = 'int32'
+        df = df.fillna(value=0).astype(dtype_dict)
 
-    return df.fillna(value=0).astype(dtype_dict)
+    return df
 
 def filter_df(df, min_val):
     """
