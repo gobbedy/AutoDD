@@ -77,11 +77,11 @@ def main():
     results_df.insert(loc=4, column='Rockets', value=pd.Series(rockets))
     results_df = results_df.fillna(value=0).astype({'Rockets': 'int32'})
 
-    # Sort by Total (sort = 1), Recent (sort = 2), Prev (sort = 3), Change (sort = 4), Rockets (sort = 5)
-    results_df.sort_values(by=results_df.columns[args.sort - 1], inplace=True, ascending=False)
-
     print("Getting financial stats...")
     results_df = get_financial_stats(results_df, args.threads, args.advanced)
+
+    # Sort by Total (sort = 1), Recent (sort = 2), Prev (sort = 3), Change (sort = 4), Rockets (sort = 5)
+    results_df.sort_values(by=results_df.columns[args.sort - 1], inplace=True, ascending=False)
 
     print_df(results_df, args.filename, args.csv)
 

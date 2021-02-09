@@ -113,7 +113,8 @@ def get_ticker_scores(sub_gen_dict):
     """
 
     # Python regex pattern for stocks codes
-    pattern = '\\b[A-Z]{3,5}\\b'
+    pattern = '(?<=\$)?\\b[A-Z]{3,5}\\b(?:\.[A-Z]{1,2})?'
+    #pattern = '\\b[A-Z]{3,5}\\b'
     #pattern = '[A-Z]{3,5}'
 
     # Dictionaries containing the summaries
@@ -157,6 +158,7 @@ def get_ticker_scores(sub_gen_dict):
                 selftext_extracted = set(re.findall(pattern, selftext))
 
             extracted_tickers = selftext_extracted.union(title_extracted)
+            extracted_tickers = {ticker.replace('.', '-') for ticker in extracted_tickers}
 
             count_rocket = title.count(rocket) + selftext.count(rocket)
             for ticker in extracted_tickers:
