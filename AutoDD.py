@@ -175,8 +175,7 @@ def get_ticker_scores_praw(sub_gen_dict):
     """
 
     # Python regex pattern for stocks codes
-    pattern = '\\b[A-Z]{3,5}\\b'
-    #pattern = '[A-Z]{3,5}'
+    pattern = '(?<=\$)?\\b[A-Z]{3,5}\\b(?:\.[A-Z]{1,2})?'
 
     # Dictionaries containing the summaries
     sub_scores_dict = {}
@@ -216,6 +215,7 @@ def get_ticker_scores_praw(sub_gen_dict):
                 selftext_extracted = set(re.findall(pattern, selftext))
 
             extracted_tickers = selftext_extracted.union(title_extracted)
+            extracted_tickers = {ticker.replace('.', '-') for ticker in extracted_tickers}
 
             count_rocket = title.count(rocket) + selftext.count(rocket)
             for ticker in extracted_tickers:
@@ -241,8 +241,6 @@ def get_ticker_scores_psaw(sub_gen_dict):
 
     # Python regex pattern for stocks codes
     pattern = '(?<=\$)?\\b[A-Z]{3,5}\\b(?:\.[A-Z]{1,2})?'
-    #pattern = '\\b[A-Z]{3,5}\\b'
-    #pattern = '[A-Z]{3,5}'
 
     # Dictionaries containing the summaries
     sub_scores_dict = {}
@@ -387,11 +385,10 @@ def get_financial_stats(results_df, threads=True, advanced=False):
     key_stats_measures = {'shortPercentOfFloat': 'Short/Float%'}
 
     # mapping of yahoo module names to dictionaries containing data we want to retrieve
-    module_name_map = {'summaryProfile': summary_profile_measures}
+    module_name_map = {'summaryProfile': summary_profile_measures, 'defaultKeyStatistics': key_stats_measures}
 
     if advanced:
-        module_name_map.update({'summaryDetail': summary_measures, 'financialData': financial_measures,
-                                'defaultKeyStatistics': key_stats_measures})
+        module_name_map.update({'summaryDetail': summary_measures, 'financialData': financial_measures})
 
     # check for valid symbols and get quick stats
     ticker_list = list(results_df.index.values)
