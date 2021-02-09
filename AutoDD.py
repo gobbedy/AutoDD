@@ -18,7 +18,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-__author__ = "Fufu Fang kaito1410 Napo2k"
+__author__ = "Fufu Fang kaito1410 Napo2k gobbedy"
 __copyright__ = "The GNU General Public License v3.0"
 
 # Native Python imports
@@ -28,16 +28,17 @@ import re
 import locale
 from datetime import datetime, timedelta
 from psaw import PushshiftAPI
+import praw
 from tabulate import tabulate
 from fast_yahoo import *
 
 # dictionary of possible subreddits to search in with their respective column name
-subreddit_dict = {'pennystocks': 'pnystks',
+subreddit_dict = {'pennystocks': 'pnnystks',
                   'RobinHoodPennyStocks': 'RHPnnyStck',
                   'Daytrading': 'daytrade',
                   'StockMarket': 'stkmrkt',
                   'stocks': 'stocks',
-                  'investing': 'invstng',
+                  'investing': 'investng',
                   'wallstreetbets': 'WSB'}
 
 # note: the following scoring system is tuned to calculate a "popularity" score
@@ -55,26 +56,48 @@ upvote_factor = 2
 # rocket emoji
 rocket = '🚀'
 
-def get_submission_generators(n, sub, allsub):
+# =================================================================================================
+# praw credentials
+CLIENT_ID = "3RbFQX8O9UqDCA"
+CLIENT_SECRET = "NalOX_ZQqGWP4eYKZv6bPlAb2aWOcA"
+USER_AGENT = "subreddit_scraper"
+
+def get_submission_praw(n, sub_dict):
 
     """
-    Returns two dictionaries:
-    1st dictionary: current result from n hours ago until now
-    2nd dictionary: prev result from 2n hours ago until n hours ago
-    The two dictionaries' keys are the requested subreddit: all subreddits if allsub is True, and just "sub" otherwise
-    The value paired with each subreddit key is a generator which traverses each submission
-    Note that the generator for each subreddit will only perform http requests when it is traversed, such that this
-    function itself does not retrieve any reddit data (merely the generators)
+    Returns a list of results for submission in past:
+    1st list: current result from n hours ago until now
+    2nd list: prev result from 2n hours ago until n hours ago
      """
+    mid_interval = datetime.utcnow() - timedelta(hours=n)
+    timestamp_mid = mid_interval.timestamp()
+    timestamp_start = (mid_interval - timedelta(hours=n)).timestamp()
+    timestamp_end = datetime.utcnow().timestamp()
 
-    if sub not in subreddit_dict:
-        print('invalid subreddit: ' + sub)
-        quit()
+    reddit = praw.Reddit(client_id=CLIENT_ID, client_secret=CLIENT_SECRET, user_agent=USER_AGENT)
 
-    sub_dict = {sub:subreddit_dict[sub]}
-    if allsub:
-        sub_dict = subreddit_dict
 
+    recent = {}
+    prev = {}
+    for key in sub_dict:
+        subreddit = reddit.subreddit(key)
+        all_results = []
+        # praw limitation gets only 1000 posts
+        for post in subreddit.new(limit=1000):
+            all_results.append([post.title, post.link_flair_text, post.selftext, post.score, post.created])
+
+        recent[key] = [posts for posts in all_results if posts[4] >= timestamp_mid and posts[4] <= timestamp_end]
+        prev[key] = [posts for posts in all_results if posts[4] >= timestamp_start and posts[4] < timestamp_mid]
+
+    return recent, prev
+
+def get_submission_psaw(n, sub_dict):
+
+    """
+    Returns a list of results for submission in past:
+    1st list: current result from n hours ago until now
+    2nd list: prev result from 2n hours ago until n hours ago
+     """
     api = PushshiftAPI()
 
     mid_interval = datetime.today() - timedelta(hours=n)
@@ -99,8 +122,112 @@ def get_submission_generators(n, sub, allsub):
 
     return recent, prev
 
+def get_submission_generators(n, sub, allsub, use_psaw):
 
-def get_ticker_scores(sub_gen_dict):
+    """
+    Returns two dictionaries:
+    1st dictionary: current result from n hours ago until now
+    2nd dictionary: prev result from 2n hours ago until n hours ago
+    The two dictionaries' keys are the requested subreddit: all subreddits if allsub is True, and just "sub" otherwise
+    The value paired with each subreddit key is a generator which traverses each submission
+    Note that the generator for each subreddit will only perform http requests when it is traversed, such that this
+    function itself does not retrieve any reddit data (merely the generators)
+     """
+
+    if sub not in subreddit_dict:
+        subreddit_dict[sub] = sub
+
+    sub_dict = {sub:subreddit_dict[sub]}
+    if allsub:
+        sub_dict = subreddit_dict
+
+    if use_psaw:
+        recent, prev = get_submission_psaw(n, sub_dict)
+
+        print("Searching for tickers...")
+        current_scores, current_rocket_scores = get_ticker_scores_psaw(recent)
+        prev_scores, prev_rocket_scores = get_ticker_scores_psaw(prev)
+    else:
+        recent, prev = get_submission_praw(n, sub_dict)
+        if recent and not prev:
+            print('submission results were not found for the previous time period. This may be a popular subreddit with lots of submissions. Try reducing the time interval with the --interval parameter')
+        elif not recent and not prev:
+            print("praw did not fetch any results for the sub: ")
+            print(sub)
+            print("try switching to psaw")
+        else: 
+            print("Searching for tickers...")
+            current_scores, current_rocket_scores = get_ticker_scores_praw(recent)
+            prev_scores, prev_rocket_scores = get_ticker_scores_praw(prev)  
+
+    return current_scores, current_rocket_scores, prev_scores, prev_rocket_scores
+
+def get_ticker_scores_praw(sub_gen_dict):
+    """
+    Return two dictionaries:
+    --sub_scores_dict: a dictionary of dictionaries. This dictionaries' keys are the requested subreddit: all subreddits
+    if args.allsub is True, and just args.sub otherwise. The value paired with each subreddit key is a dictionary of
+    scores, where each key is a ticker found in the reddit submissions.
+    --rocket_scores_dict: a dictionary whose keys are the tickers found in reddit submissions, and value is the number
+    of rocker emojis found for each ticker.
+
+    :param sub_gen_dict: A dictionary of generators for each subreddit, as outputted by get_submission_generators
+    """
+
+    # Python regex pattern for stocks codes
+    pattern = '\\b[A-Z]{3,5}\\b'
+    #pattern = '[A-Z]{3,5}'
+
+    # Dictionaries containing the summaries
+    sub_scores_dict = {}
+
+    # Dictionaries containing the rocket count
+    rocket_scores_dict = {}
+
+    for sub, submission_list in sub_gen_dict.items():
+
+        sub_scores_dict[sub] = {}
+
+        for submission in submission_list:
+            # every ticker in the title will earn this base points
+            increment = base_points
+
+            # flair is worth bonus points
+            if submission[1] is not None:
+                if 'DD' in submission[1]:
+                    increment += bonus_points
+                elif 'Catalyst' in submission[1]:
+                    increment += bonus_points
+                elif 'technical analysis' in submission[1]:
+                    increment += bonus_points
+
+            # every 2 upvotes are worth 1 extra point
+            if upvote_factor > 0 and submission[3] is not None:
+                increment += math.ceil(submission[3]/upvote_factor)
+
+            # search the title for the ticker/tickers
+            title = ' ' + submission[0] + ' '
+            title_extracted = set(re.findall(pattern, title))
+
+            # search the text body for the ticker/tickers
+            selftext_extracted = set()
+            if submission[2] is not None:
+                selftext = ' ' + submission[2] + ' '
+                selftext_extracted = set(re.findall(pattern, selftext))
+
+            extracted_tickers = selftext_extracted.union(title_extracted)
+
+            count_rocket = title.count(rocket) + selftext.count(rocket)
+            for ticker in extracted_tickers:
+                rocket_scores_dict[ticker] = rocket_scores_dict.get(ticker, 0) + count_rocket
+
+            # title_extracted is a set, duplicate tickers from the same title counted once only
+            for ticker in extracted_tickers:
+                sub_scores_dict[sub][ticker] = sub_scores_dict[sub].get(ticker, 0) + increment
+
+    return sub_scores_dict, rocket_scores_dict
+
+def get_ticker_scores_psaw(sub_gen_dict):
     """
     Return two dictionaries:
     --sub_scores_dict: a dictionary of dictionaries. This dictionaries' keys are the requested subreddit: all subreddits
@@ -168,7 +295,7 @@ def get_ticker_scores(sub_gen_dict):
 
     return sub_scores_dict, rocket_scores_dict
 
-def populate_df(current_scores_dict, prev_scores_dict):
+def populate_df(current_scores_dict, prev_scores_dict, interval):
     """
     Combine two score dictionaries, one from the current time interval, and one from the past time interval
     :returns: the populated dataframe
@@ -197,7 +324,8 @@ def populate_df(current_scores_dict, prev_scores_dict):
                 dict_result[symbol] = [prev_score, 0, prev_score, -prev_score]
             total_sub_scores[sub][symbol] = total_sub_scores[sub].get(symbol, 0) + prev_score
 
-    columns = ['Total', 'Recent', 'Prev', 'Change']
+    first_col = str(interval) + 'H Total'
+    columns = [first_col, 'Recent', 'Prev', 'Change']
     df = pd.DataFrame.from_dict(dict_result, orient='index', columns=columns)
 
     if len(current_scores_dict) > 1:
@@ -225,10 +353,11 @@ def filter_df(df, min_val):
         'MERGE', 'BUY', 'HIGH', 'ADS', 'FOMO', 'THIS', 'OTC', 'ELI', 'IMO', 'TLDR', 'SHIT', 'ETF', 'BOOM', 'THANK',
         'PPP', 'REIT', 'HOT', 'MAYBE', 'AKA', 'CBS', 'SEC', 'NOW', 'OVER', 'ROPE', 'MOON', 'SSR', 'HOLD', 'SELL',
         'COVID', 'GROUP', 'MONDA', 'USA', 'YOLO', 'MUSK', 'AND', 'STONK', 'ELON', 'CAD', 'WIN', 'GET', 'BETS', 'INTO',
-        'JUST', 'MAKE', 'NEED'
+        'JUST', 'MAKE', 'NEED', 'BIG', 'STONK', 'ELON', 'CAD', 'OUT', 'TOP', 'ALL', 'ATH', 'ANY', 'AIM', 'IPO', 'EDIT'
     ]
 
-    df = df[df.Total >= min_val]
+    # compares the first column, which is the total score to the min val
+    df = df[df.iloc[:, 0] >= min_val]
     drop_index = pd.Index(BANNED_WORDS).intersection(df.index)
     df = df.drop(index=drop_index)
     return df
@@ -253,7 +382,7 @@ def get_financial_stats(results_df, threads=True, advanced=False):
                         'twoHundredDayAverage': '200dayavg'}
 
     # dictionary of ticker key stats summary
-    key_stats_measures = {'floatShares': 'Float'}
+    key_stats_measures = {'shortPercentOfFloat': 'Short/Float%'}
 
     # mapping of yahoo module names to dictionaries containing data we want to retrieve
     module_name_map = {'summaryProfile': summary_profile_measures}
@@ -270,7 +399,7 @@ def get_financial_stats(results_df, threads=True, advanced=False):
     summary_stats_df = download_advanced_stats(valid_ticker_list, module_name_map, threads)
     results_df_valid = results_df.loc[valid_ticker_list]
     results_df = pd.concat([results_df_valid, quick_stats_df, summary_stats_df], axis=1)
-    results_df.index.name = 'Code'
+    results_df.index.name = 'Ticker'
 
     return results_df
 
@@ -278,7 +407,8 @@ def get_quick_stats(ticker_list, threads=True):
 
     quick_stats = {'regularMarketPreviousClose': 'prvCls', 'fiftyDayAverage': '50DayAvg',
                    'regularMarketVolume': 'Volume', 'averageDailyVolume3Month': '3MonthVolAvg',
-                   'regularMarketPrice': 'price', 'regularMarketChangePercent': '1DayChange%', 'floatShares': 'float'}
+                   'regularMarketPrice': 'price', 'regularMarketChangePercent': '1DayChange%', 
+                   'floatShares': 'float'}
 
     unprocessed_df = download_quick_stats(ticker_list, quick_stats, threads)
 
@@ -329,7 +459,7 @@ def get_quick_stats(ticker_list, threads=True):
             change_vol = "{:.3f}".format(change_vol)
 
         if stock_float != "N/A":
-            if stock_float != 0:
+                stock_float = stock_float
                 valid = True
 
         # if the ticker has any valid column, append
@@ -338,7 +468,7 @@ def get_quick_stats(ticker_list, threads=True):
             processed_stats_table.append(stat_list)
 
     # construct dataframe
-    columns = ['Symbol', 'Price', '%DayChange', '%50DayChange', '%ChangeVol', 'Float']
+    columns = ['Symbol', 'Price', '1DayChange%', '50DayChange%', 'ChangeVol%', 'Float Shares']
     stats_df = pd.DataFrame(processed_stats_table, columns=columns)
     stats_df.set_index('Symbol', inplace=True)
 
