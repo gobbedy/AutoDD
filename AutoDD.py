@@ -2,127 +2,39 @@
 # -*- coding: utf-8 -*-
 """ AutoDD: Automatically does the so called Due Diligence for you. """
 
-#AutoDD - Automatically does the "due diligence" for you.
-#Copyright (C) 2021  Fufu Fang, Steven Zhu
-
-#This program is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#(at your option) any later version.
-
-#This program is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
-
-#You should have received a copy of the GNU General Public License
-#along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 __author__ = "Fufu Fang kaito1410 Napo2k gobbedy"
 __copyright__ = "The GNU General Public License v3.0"
 
-# Native Python imports
 import os
 import sys
-import re
 import locale
-from datetime import datetime, timedelta
-from psaw import PushshiftAPI
-import praw
+import re
+from utils import *
 from tabulate import tabulate
 from fast_yahoo import *
+from Submissions import SubmissionsPsaw, SubmissionsPmaw, SubmissionsPraw
 
-# dictionary of possible subreddits to search in with their respective column name
-subreddit_dict = {'pennystocks': 'pnnystks',
-                  'RobinHoodPennyStocks': 'RHPnnyStck',
-                  'Daytrading': 'daytrade',
-                  'StockMarket': 'stkmrkt',
-                  'stocks': 'stocks',
-                  'investing': 'investng',
-                  'wallstreetbets': 'WSB'}
+def get_proxies(proxy_filename):
 
-# note: the following scoring system is tuned to calculate a "popularity" score
-# feel free to make adjustments to suit your needs
+    if proxy_filename:
+        proxies = []
+        with open(proxy_filename) as file:
+            for line in file:
+                # remove comments and whitespace
+                line = line.split("#")[0].strip()
+                if line:
+                    # if line contains "passhtrough", retrieve data without proxy as one thread
+                    if line == "passthrough":
+                        proxies.append("")
+                    else:
+                        proxies.append(line)
+    else:
+        # ie no proxy
+        proxies = [""]
 
-# x base point of for a ticker that appears on a subreddit title or text body that fits the search criteria
-base_points = 4
+    return proxies
 
-# x bonus points for each flair matching 'DD' or 'Catalyst' of for a ticker that appears on the subreddit
-bonus_points = 2
-
-# every x upvotes on the thread counts for 1 point (rounded down)
-upvote_factor = 2
-
-# rocket emoji
-rocket = '🚀'
-
-# =================================================================================================
-# praw credentials
-CLIENT_ID = "3RbFQX8O9UqDCA"
-CLIENT_SECRET = "NalOX_ZQqGWP4eYKZv6bPlAb2aWOcA"
-USER_AGENT = "subreddit_scraper"
-
-def get_submission_praw(n, sub_dict):
-
-    """
-    Returns a list of results for submission in past:
-    1st list: current result from n hours ago until now
-    2nd list: prev result from 2n hours ago until n hours ago
-     """
-    mid_interval = datetime.utcnow() - timedelta(hours=n)
-    timestamp_mid = mid_interval.timestamp()
-    timestamp_start = (mid_interval - timedelta(hours=n)).timestamp()
-    timestamp_end = datetime.utcnow().timestamp()
-
-    reddit = praw.Reddit(client_id=CLIENT_ID, client_secret=CLIENT_SECRET, user_agent=USER_AGENT)
-
-
-    recent = {}
-    prev = {}
-    for key in sub_dict:
-        subreddit = reddit.subreddit(key)
-        all_results = []
-        # praw limitation gets only 1000 posts
-        for post in subreddit.new(limit=1000):
-            all_results.append([post.title, post.link_flair_text, post.selftext, post.score, post.created])
-
-        recent[key] = [posts for posts in all_results if posts[4] >= timestamp_mid and posts[4] <= timestamp_end]
-        prev[key] = [posts for posts in all_results if posts[4] >= timestamp_start and posts[4] < timestamp_mid]
-
-    return recent, prev
-
-def get_submission_psaw(n, sub_dict):
-
-    """
-    Returns a list of results for submission in past:
-    1st list: current result from n hours ago until now
-    2nd list: prev result from 2n hours ago until n hours ago
-     """
-    api = PushshiftAPI()
-
-    mid_interval = datetime.today() - timedelta(hours=n)
-    timestamp_mid = int(mid_interval.timestamp())
-    timestamp_start = int((mid_interval - timedelta(hours=n)).timestamp())
-    timestamp_end = int(datetime.today().timestamp())
-
-    recent = {}
-    prev = {}
-    for key in sub_dict:
-        # results from the last n hours
-        recent[key] = api.search_submissions(after=timestamp_mid,
-                                     before=timestamp_end,
-                                     subreddit=key,
-                                     filter=['title', 'link_flair_text', 'selftext', 'score'])
-
-        # results from the last 2n hours until n hours ago
-        prev[key] = api.search_submissions(after=timestamp_start,
-                                     before=timestamp_mid,
-                                     subreddit=key,
-                                     filter=['title', 'link_flair_text', 'selftext', 'score'])
-
-    return recent, prev
-
-def get_submission_generators(n, sub, allsub, use_psaw):
+def get_submissions(n, sub, allsub, db='psaw', proxies=None):
 
     """
     Returns two dictionaries:
@@ -130,39 +42,27 @@ def get_submission_generators(n, sub, allsub, use_psaw):
     2nd dictionary: prev result from 2n hours ago until n hours ago
     The two dictionaries' keys are the requested subreddit: all subreddits if allsub is True, and just "sub" otherwise
     The value paired with each subreddit key is a generator which traverses each submission
-    Note that the generator for each subreddit will only perform http requests when it is traversed, such that this
-    function itself does not retrieve any reddit data (merely the generators)
      """
 
-    if sub not in subreddit_dict:
-        subreddit_dict[sub] = sub
-
-    sub_dict = {sub:subreddit_dict[sub]}
     if allsub:
-        sub_dict = subreddit_dict
-
-    if use_psaw:
-        recent, prev = get_submission_psaw(n, sub_dict)
-
-        print("Searching for tickers...")
-        current_scores, current_rocket_scores = get_ticker_scores_psaw(recent)
-        prev_scores, prev_rocket_scores = get_ticker_scores_psaw(prev)
+        requested_sub = None
     else:
-        recent, prev = get_submission_praw(n, sub_dict)
-        if recent and not prev:
-            print('submission results were not found for the previous time period. This may be a popular subreddit with lots of submissions. Try reducing the time interval with the --interval parameter')
-        elif not recent and not prev:
-            print("praw did not fetch any results for the sub: ")
-            print(sub)
-            print("try switching to psaw")
-        else: 
-            print("Searching for tickers...")
-            current_scores, current_rocket_scores = get_ticker_scores_praw(recent)
-            prev_scores, prev_rocket_scores = get_ticker_scores_praw(prev)  
+        requested_sub = sub
 
-    return current_scores, current_rocket_scores, prev_scores, prev_rocket_scores
+    if db == 'psaw':
+        submissions_api = SubmissionsPsaw(proxy_list=proxies, sub=requested_sub)
+    elif db == 'pmaw':
+        submissions_api = SubmissionsPmaw(proxy_list=proxies, sub=requested_sub)
+    elif db == 'praw':
+        submissions_api = SubmissionsPraw(proxy_list=proxies, sub=requested_sub)
+    else:
+        raise ValueError("Invalid db '{}'. Valid choices:\npraw, psaw, pmaw".format(db))
 
-def get_ticker_scores_praw(sub_gen_dict):
+    recent, prev = submissions_api.get_submissions(n)
+
+    return recent, prev
+
+def get_ticker_scores(sub_results_dict):
     """
     Return two dictionaries:
     --sub_scores_dict: a dictionary of dictionaries. This dictionaries' keys are the requested subreddit: all subreddits
@@ -174,70 +74,14 @@ def get_ticker_scores_praw(sub_gen_dict):
     :param sub_gen_dict: A dictionary of generators for each subreddit, as outputted by get_submission_generators
     """
 
-    # Python regex pattern for stocks codes
-    pattern = '(?<=\$)?\\b[A-Z]{3,5}\\b(?:\.[A-Z]{1,2})?'
+    # rocket emoji
+    rocket = '🚀'
 
-    # Dictionaries containing the summaries
-    sub_scores_dict = {}
+    # x base point of for a ticker that appears on a subreddit title or text body that fits the search criteria
+    base_points = 4
 
-    # Dictionaries containing the rocket count
-    rocket_scores_dict = {}
-
-    for sub, submission_list in sub_gen_dict.items():
-
-        sub_scores_dict[sub] = {}
-
-        for submission in submission_list:
-            # every ticker in the title will earn this base points
-            increment = base_points
-
-            # flair is worth bonus points
-            if submission[1] is not None:
-                if 'DD' in submission[1]:
-                    increment += bonus_points
-                elif 'Catalyst' in submission[1]:
-                    increment += bonus_points
-                elif 'technical analysis' in submission[1]:
-                    increment += bonus_points
-
-            # every 2 upvotes are worth 1 extra point
-            if upvote_factor > 0 and submission[3] is not None:
-                increment += math.ceil(submission[3]/upvote_factor)
-
-            # search the title for the ticker/tickers
-            title = ' ' + submission[0] + ' '
-            title_extracted = set(re.findall(pattern, title))
-
-            # search the text body for the ticker/tickers
-            selftext_extracted = set()
-            if submission[2] is not None:
-                selftext = ' ' + submission[2] + ' '
-                selftext_extracted = set(re.findall(pattern, selftext))
-
-            extracted_tickers = selftext_extracted.union(title_extracted)
-            extracted_tickers = {ticker.replace('.', '-') for ticker in extracted_tickers}
-
-            count_rocket = title.count(rocket) + selftext.count(rocket)
-            for ticker in extracted_tickers:
-                rocket_scores_dict[ticker] = rocket_scores_dict.get(ticker, 0) + count_rocket
-
-            # title_extracted is a set, duplicate tickers from the same title counted once only
-            for ticker in extracted_tickers:
-                sub_scores_dict[sub][ticker] = sub_scores_dict[sub].get(ticker, 0) + increment
-
-    return sub_scores_dict, rocket_scores_dict
-
-def get_ticker_scores_psaw(sub_gen_dict):
-    """
-    Return two dictionaries:
-    --sub_scores_dict: a dictionary of dictionaries. This dictionaries' keys are the requested subreddit: all subreddits
-    if args.allsub is True, and just args.sub otherwise. The value paired with each subreddit key is a dictionary of
-    scores, where each key is a ticker found in the reddit submissions.
-    --rocket_scores_dict: a dictionary whose keys are the tickers found in reddit submissions, and value is the number
-    of rocker emojis found for each ticker.
-
-    :param sub_gen_dict: A dictionary of generators for each subreddit, as outputted by get_submission_generators
-    """
+    # every x upvotes on the thread counts for 1 point (rounded down)
+    upvote_factor = 2
 
     # Python regex pattern for stocks codes
     pattern = '(?<=\$)?\\b[A-Z]{3,5}\\b(?:\.[A-Z]{1,2})?'
@@ -248,38 +92,32 @@ def get_ticker_scores_psaw(sub_gen_dict):
     # Dictionaries containing the rocket count
     rocket_scores_dict = {}
 
-    for sub, submission_gen in sub_gen_dict.items():
+    for sub, submission_list in sub_results_dict.items():
 
         sub_scores_dict[sub] = {}
 
         # looping over each submission
-        for submission in submission_gen:
+        for submission_dict in submission_list:
 
             # every ticker in the title will earn this base points
             increment = base_points
 
-            # flair is worth bonus points
-            if hasattr(submission, 'link_flair_text'):
-                if 'DD' in submission.link_flair_text:
-                    increment += bonus_points
-                elif 'Catalyst' in submission.link_flair_text:
-                    increment += bonus_points
-                elif 'technical analysis' in submission.link_flair_text:
-                    increment += bonus_points
-
             # every 2 upvotes are worth 1 extra point
-            if hasattr(submission, 'score') and upvote_factor > 0:
-                increment += math.ceil(submission.score / upvote_factor)
+            if 'score' in submission_dict and upvote_factor > 0:
+                increment += math.ceil(submission_dict['score'] / upvote_factor)
 
             # search the title for the ticker/tickers
-            if hasattr(submission, 'title'):
-                title = ' ' + submission.title + ' '
+            title_extracted = set()
+            title = ''
+            if 'title' in submission_dict:
+                title = ' ' + submission_dict['title'] + ' '
                 title_extracted = set(re.findall(pattern, title))
 
             # search the text body for the ticker/tickers
             selftext_extracted = set()
-            if hasattr(submission, 'selftext'):
-                selftext = ' ' + submission.selftext + ' '
+            selftext = ''
+            if 'selftext' in submission_dict:
+                selftext = ' ' + submission_dict['selftext'] + ' '
                 selftext_extracted = set(re.findall(pattern, selftext))
 
             extracted_tickers = selftext_extracted.union(title_extracted)
