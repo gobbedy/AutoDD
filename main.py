@@ -52,9 +52,6 @@ def main():
                          '2 = sort by recent score, 3 = sort by previous score, 4 = sort by change in score, '
                          '5 = sort by # of rocket emojis')
 
-    parser.add_argument('--allsub', default=False, action='store_true',
-                    help='Search across all finance subreddit. Does not work with --sub option.')
-
     parser.add_argument('--db', default='psaw', type=str,
                     help='Select the database api: psaw, pmaw (push-shift wrappers) or praw (reddit api wrapper)')
 
@@ -74,26 +71,18 @@ def main():
 
     args = parser.parse_args()
 
-    if args.sub and args.allsub:
-        raise ValueError("--sub and --allsub options are mutually exclusive.")
-
     # get a list of proxies from proxy file
     proxies = get_proxies(args.proxy_file)
 
     print("Getting submissions...")
-    recent, prev = get_submissions(args.interval, args.sub, args.allsub, args.db, proxies)
-
-    if not prev:
-        raise Exception('No results for the previous time period. If praw this may be a popular subreddit.')
-    elif not recent:
-        raise Exception('No results for the recent time period.')
+    recent, prev = get_submissions(args.interval, args.sub, args.db, proxies)
 
     print("Searching for tickers...")
     current_scores, current_rocket_scores = get_ticker_scores(recent)
     prev_scores, prev_rocket_scores = get_ticker_scores(prev)
 
     print("Populating results...")
-    results_df = populate_df(current_scores, prev_scores, args.interval)
+    results_df = score_change_df(current_scores, prev_scores, args.interval)
     results_df = filter_df(results_df, args.min)
 
     print("Counting rockets...")

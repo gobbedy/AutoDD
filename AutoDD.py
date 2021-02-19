@@ -13,6 +13,8 @@ from utils import *
 from tabulate import tabulate
 from fast_yahoo import *
 from Submissions import SubmissionsPsaw, SubmissionsPmaw, SubmissionsPraw
+import warnings
+
 
 def get_proxies(proxy_filename):
 
@@ -34,7 +36,7 @@ def get_proxies(proxy_filename):
 
     return proxies
 
-def get_submissions(n, sub, allsub, db='psaw', proxies=None):
+def get_submissions(n, sub, db='psaw', proxies=None):
 
     """
     Returns two dictionaries:
@@ -44,21 +46,27 @@ def get_submissions(n, sub, allsub, db='psaw', proxies=None):
     The value paired with each subreddit key is a generator which traverses each submission
      """
 
-    if allsub:
-        requested_sub = None
-    else:
-        requested_sub = sub
-
     if db == 'psaw':
-        submissions_api = SubmissionsPsaw(proxy_list=proxies, sub=requested_sub)
+        submissions_api = SubmissionsPsaw(proxy_list=proxies, sub=sub)
     elif db == 'pmaw':
-        submissions_api = SubmissionsPmaw(proxy_list=proxies, sub=requested_sub)
+        submissions_api = SubmissionsPmaw(proxy_list=proxies, sub=sub)
     elif db == 'praw':
-        submissions_api = SubmissionsPraw(proxy_list=proxies, sub=requested_sub)
+        submissions_api = SubmissionsPraw(proxy_list=proxies, sub=sub)
     else:
         raise ValueError("Invalid db '{}'. Valid choices:\npraw, psaw, pmaw".format(db))
 
     recent, prev = submissions_api.get_submissions(n)
+
+    if all(value == [] for value in prev.values()):
+        raise Exception('No results for the previous time period.')
+    elif not recent:
+        raise Exception('No results for the recent time period.')
+
+    for subreddit in prev:
+        if not prev[subreddit]:
+            raise warnings.warn('No results for the previous time period in {} subreddit.'.format(subreddit))
+        if not recent[subreddit]:
+            raise warnings.warn('No results for the recent time period in {} subreddit.'.format(subreddit))
 
     return recent, prev
 
@@ -133,7 +141,7 @@ def get_ticker_scores(sub_results_dict):
 
     return sub_scores_dict, rocket_scores_dict
 
-def populate_df(current_scores_dict, prev_scores_dict, interval):
+def score_change_df(current_scores_dict, prev_scores_dict, interval):
     """
     Combine two score dictionaries, one from the current time interval, and one from the past time interval
     :returns: the populated dataframe

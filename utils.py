@@ -1,7 +1,7 @@
 import copy
 from datetime import datetime, timedelta
 
-def gen_payloads(num_splits, payload, search_window=365):
+def gen_slices(num_splits, payload, search_window=365):
     """Creates a list of payloads"""
 
     if 'after' not in payload:
@@ -15,13 +15,13 @@ def gen_payloads(num_splits, payload, search_window=365):
 
     # create time slices
     ts = timeslice(after, before, num_splits)
-    payloads = [mapslice(copy.deepcopy(payload), ts[i], ts[i + 1]) for i in range(num_splits)]
+    slices = [mapslice(copy.deepcopy(payload), ts[i+1], ts[i]) for i in range(num_splits)]
 
-    return payloads
+    return slices
 
 
 def timeslice(after, before, num):
-    return [int((before - after) * i / num + after) for i in range(num + 1)]
+    return [int((before - after) * i / num + after) for i in reversed(range(num + 1))]
 
 
 def mapslice(payload, after, before):
