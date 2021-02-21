@@ -1,11 +1,13 @@
-## About AutoDD Rev 2
+## About AutoDD Rev 3
 
 AutoDD = Automatically does the "due diligence" for you. 
 If you want to know what stocks people are talking about on reddit, this little program might help you. 
 
 Original author - Fufu Fang https://github.com/fangfufu
 
-Rev 2 Author - Steven Zhu https://github.com/kaito1410 Napo2k https://github.com/Napo2k
+Rev 2 Authors - Steven Zhu https://github.com/kaito1410 Napo2k https://github.com/Napo2k
+
+Rev 3 Author - Guillaume Perrault-Archambault https://github.com/gobbedy
 
 The original AutoDD produced a simple table of the stock ticker and the number of threads talking about the ticker.
 
@@ -21,6 +23,20 @@ Version 2 of AutoDD adds some options and features that the original did not hav
 	
 	- Can be run with a windows scheduler to run the program at a set time everyday
 
+Version 3 adds further options and improvements:
+
+	- A speedup of roughly 20x (multi-threading + low-level yahoo API manipulation)
+
+	- Ability to use proxies for further speedup (roughly proportional to the number of proxies)
+
+    - Fix the reddit scores (Rev 2 had incorrect scores)
+
+    - Add additional popular subreddits (wallstreetbetELITE, satoshistreetbets)
+
+    - Improve the regex expression for finding tickers
+
+    - Refactor the code (use pandas dataframes, object orientation)
+
 ## Requirements 
 
 Python (tested on python 3.8.1) https://www.python.org/downloads/release/python-381/
@@ -29,9 +45,13 @@ Pip - python get-pip.py https://phoenixnap.com/kb/install-pip-windows#:~:text=PI
 
 psaw - pip install psaw https://pypi.org/project/psaw/
 
-yahooquery - pip install yahooquery https://pypi.org/project/yahooquery/
+praw - pip install praw https://pypi.org/project/praw/
+
+requests - pip install requests https://pypi.org/project/requests/
 
 tabulate - pip install tabulate https://pypi.org/project/tabulate/
+
+pandas - pip install tabulate https://pypi.org/project/pandas/
 
 The requirements can be installed by running install_requirements.bat / install_requirements.sh
 
@@ -94,15 +114,15 @@ Industry - Industry of the company if available
 
 Default Output:
 
-![Alt text](default_table.JPG?raw=true "Title")
+![Alt text](img/default_table.JPG?raw=true "Title")
 
 Allsub Option Output:
 
-![Alt text](allsub_option.JPG?raw=true "Title")
+![Alt text](img/allsub_option.JPG?raw=true "Title")
 
 Yahoo Option Output:
 
-![Alt text](yahoo_option.JPG?raw=true "Title")
+![Alt text](img/yahoo_option.JPG?raw=true "Title")
 
 ## Options
 
@@ -149,7 +169,7 @@ Min (Minimum score)
 	1. Filter out results that have less than the min score in the Title column, default is 10
 	
 	
-Yahoo (Yahoo Finance toggle)
+Advanced (Yahoo Finance toggle)
 
 	1. Using this parameter shows yahoo finance information, running yahoo mode is slower
 	
@@ -172,11 +192,7 @@ Sort
 	2.  pass in values 1, 2, 3, or 4
 	
 	3. 1 = sort by total score, 2 = sort by recent score, 3 = sort by previous score, 4 = sort by change in score, 5 = sort by change in # of rocket emojis
-	
-Allsub (Subreddit toggle)
 
-	1. Using this parameter shows scores on the other subreddits such as RobinHoodPennyStocks, Stocks, WallStreetBets, etc
-	
 Csv 
 
 	1. Outputs table_records.csv file
@@ -184,92 +200,4 @@ Csv
 Filename
 
 	1. choose a different filename, this programs saves the table results to table_records.txt in the same folder as the AutoDD.py program
-	
-## Troubleshoot
 
-ModuleNotFoundError: No module named 'something'
-	
-	- This means the dependency was not installed correctly, try running: 
-	
-		pip install 'something'
-		
-	- Another possibility is that python is using the wrong version, try:
-		
-		python3 main.py
-		
-AutoDD.py not found
-
-	- This means the terminal can't find the python script, either navigate to the AutoDD folder using terminal or
-	
-		python path-to-autodd-folder/AutoDD.py
-		ie. python C:/AutoDD_Folder/AutoDD.py
-
-## Scheduler (Tested on Windows) 
-	
-1. Create a .bat file and type in:
-
-	python path-to-AutoDD\AutoDD.py --whatever options you want to configure
-
-2. Open windows Task Scheduler
-
-3. Create a basic task
-
-4. Fill in the name and description
-
-5. Choose a trigger that works for you, mine is every day
-
-6. Choose "Start a program" and put in the path to your .bat file 
-
-	- ie. "C:\AutoDD-folder\run_auto_dd.bat"
-	
-7. That's it, just check table_records.txt or the file name that you've selected and it will have the table ready
-	
-## Developers/Advanced Users
-
-I'm a C++ main, so excuse my python code/inefficencies with handling tables and lists in python.
-
-I've put a couple global variables for some advanced users to allow for easy modifications:
-
-	# dictionary of possible subreddits to search in with their respective table column name
-	subreddit_dict = {'pennystocks' : 'pnystks',
-					  'RobinHoodPennyStocks' : 'RHPnnyStck',
-					  'Daytrading' : 'daytrade',
-					  'StockMarket' : 'stkmrkt',
-					  'stocks' : 'stocks'}
-
-	# dictionary of ticker financial information to get from yahoo
-	financial_measures = {'currentPrice' : 'Price', 'quickRatio': 'QckRatio', 'currentRatio': 'CrntRatio', 'targetMeanPrice': 'trgtmean', 'recommendationKey': 'recommadtn'}
-
-	# dictionary of ticker summary information to get from yahoo
-	summary_measures = {'previousClose' : 'prvCls', 'open': 'open', 'dayLow': 'daylow', 'dayHigh': 'dayhigh', 'payoutRatio': 'pytRatio', 'forwardPE': 'forwardPE', 'beta': 'beta', 'bidSize': 'bidSize', 'askSize': 'askSize', 'volume': 'volume', 'averageVolume': 'avgvolume', 'averageVolume10days': 'avgvlmn10', 'fiftyDayAverage': '50dayavg', 'twoHundredDayAverage': '200dayavg'}
-
-
-	# note: the following scoring system is tuned to calculate a "popularity" score
-	# feel free to make adjustments to suit your needs
-
-	# x base point of for a ticker that appears on a subreddit title or text body that fits the search criteria
-	base_points = 4
-
-	# x bonus points for each flair matching 'DD' or 'Catalyst' of for a ticker that appears on the subreddit
-	bonus_points = 2
-
-	# every x upvotes on the thread counts for 1 point (rounded down)
-	upvote_factor = 2	
-
-## License
-
-    AutoDD - Automatically does the "due diligence" for you. 
-    Copyright (C) 2020  Fufu Fang, kaito1410, Napo2k
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.

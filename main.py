@@ -1,81 +1,63 @@
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """ AutoDD: Automatically does the so called Due Diligence for you. """
-
-#AutoDD - Automatically does the "due diligence" for you.
-#Copyright (C) 2020  Fufu Fang, Steven Zhu
-
-#This program is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#(at your option) any later version.
-
-#This program is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
-
-#You should have received a copy of the GNU General Public License
-#along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-__author__ = "Fufu Fang kaito1410 Napo2k gobbedy"
-__copyright__ = "The GNU General Public License v3.0"
-
 import argparse
-from AutoDD import *
-from collections import Counter
 import time
-from datetime import timedelta
+import utils
+from collections import Counter
+from AutoDD import *
 
 def main():
     # Instantiate the parser
     parser = argparse.ArgumentParser(description='AutoDD Optional Parameters')
 
     parser.add_argument('--interval', nargs='?', const=24, type=int, default=24,
-                    help='Choose a time interval in hours to filter the results, default is 24 hours')
+                    help='Choose an interval in hours to filter the results, default is 24 hours.')
 
     parser.add_argument('--sub', nargs='?', type=str, default='',
-                    help='Choose a subreddit to search for tickers in. If none provided all subs are searched')
+                    help='Choose a subreddit to scrape for tickers. If none provided all subs are searched.')
 
-    parser.add_argument('--min', nargs='?', const=10, type=int, default=10,
-                    help='Filter out results that have less than the min score, default is 10')
+    parser.add_argument('--min', nargs='?', const=100, type=int, default=100,
+                    help='Filter out results that have less than the min score, default is 100.')
 
     parser.add_argument('--maxprice', nargs='?', const=9999999, type=int, default=9999999,
-                    help='Filter out results more than the max price set, default is 9999999')
+                    help='Filter out results more than the max price set, default is 9999999.')
 
     parser.add_argument('--advanced', default=False, action='store_true',
-                    help='Using this parameter shows advanced yahoo finance information on the ticker')
+                    help='Using this parameter shows advanced yahoo finance information on the ticker.')
 
     parser.add_argument('--sort', nargs='?', const=1, type=int, default=1,
-                    help='Sort the results table by descending order of score, 1 = sort by total score, '
-                         '2 = sort by recent score, 3 = sort by previous score, 4 = sort by change in score, '
-                         '5 = sort by # of rocket emojis')
+                    help='Sort output by descending order of 1: total score, 2: recent score, 3: previous score, '
+                         '4: change in score, 5: # of rocket emojis.')
 
-    parser.add_argument('--db', default='psaw', type=str,
-                    help='Select the database api: psaw, pmaw (push-shift wrappers) or praw (reddit api wrapper)')
+    parser.add_argument('--db', default='hybrid', type=str,
+                    help='Select the database api: psaw (push-shift wrappers), praw (reddit api wrapper), or hybrid.')
 
     parser.add_argument('--no-threads', action='store_false', dest='threads',
                     help='Disable multi-tasking (enabled by default). Multi-tasking speeds up downloading of data.')
 
     parser.add_argument('--csv', default=False, action='store_true',
-                    help='Using this parameter produces a table_records.csv file, rather than a .txt file')
+                    help='Using this parameter produces a table_records.csv file, rather than a .txt file.')
 
     parser.add_argument('--filename', nargs='?', const='table_records', type=str, default='table_records',
-                    help='Change the file name from table_records to whatever you wish')
+                    help='Change the file name from table_records to whatever you wish.')
 
     parser.add_argument('--proxy_file', nargs='?', type=str, default=None,
-                    help='Optionally provide a file containing proxies to speed up reddit retrieval')
+                    help='Optionally provide a file containing proxies to speed up reddit retrieval.')
+
+    parser.add_argument('--cred_file', nargs='?', type=str, default=None,
+                    help='Provide a file containing praw credentials. Required if db=praw or db=hybrid.')
+
 
     start = time.time()
 
     args = parser.parse_args()
 
     # get a list of proxies from proxy file
-    proxies = get_proxies(args.proxy_file)
+    proxies = utils.get_proxies(args.proxy_file)
 
     print("Getting submissions...")
-    recent, prev = get_submissions(args.interval, args.sub, args.db, proxies)
+    recent, prev = get_submissions(args.interval, args.sub, args.db, proxies, args.cred_file)
 
     print("Searching for tickers...")
     current_scores, current_rocket_scores = get_ticker_scores(recent)
@@ -97,8 +79,9 @@ def main():
     results_df.sort_values(by=results_df.columns[args.sort - 1], inplace=True, ascending=False)
 
     print_df(results_df, args.filename, args.csv)
-    total_time = str(timedelta(seconds=(time.time() - start)))
+    total_time = str(timedelta(seconds=round(time.time() - start)))
     print("AutoDD took " + total_time + " (H:MM:SS).")
+    print("Dataframe has {} rows".format(len(results_df.index)))
 
 if __name__ == '__main__':
     main()

@@ -1,5 +1,5 @@
 from proxy_checker import ProxyChecker
-from AutoDD import get_proxies
+import utils
 from concurrent.futures import ThreadPoolExecutor
 
 def check_proxy(proxy_str):
@@ -17,7 +17,7 @@ def check_proxy(proxy_str):
     return check_dict
 
 filename = "proxies.txt"
-proxy_list = get_proxies(filename)
+proxy_list = utils.get_proxies(filename)
 
 # get rid of empty string in list if there
 proxy_list = [proxy for proxy in proxy_list if proxy]

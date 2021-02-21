@@ -9,34 +9,15 @@ import os
 import sys
 import locale
 import re
-from utils import *
-from tabulate import tabulate
-from fast_yahoo import *
-from Submissions import SubmissionsPsaw, SubmissionsPmaw, SubmissionsPraw
+import math
 import warnings
+import pandas as pd
+from tabulate import tabulate
+from FastYahoo import FastYahoo
+from Submissions import SubmissionsPsaw, SubmissionsPraw, SubmissionsHybrid
+from datetime import datetime, timedelta
 
-
-def get_proxies(proxy_filename):
-
-    if proxy_filename:
-        proxies = []
-        with open(proxy_filename) as file:
-            for line in file:
-                # remove comments and whitespace
-                line = line.split("#")[0].strip()
-                if line:
-                    # if line contains "passhtrough", retrieve data without proxy as one thread
-                    if line == "passthrough":
-                        proxies.append("")
-                    else:
-                        proxies.append(line)
-    else:
-        # ie no proxy
-        proxies = [""]
-
-    return proxies
-
-def get_submissions(n, sub, db='psaw', proxies=None):
+def get_submissions(n, sub, db='psaw', proxies=None, praw_cred_file=None):
 
     """
     Returns two dictionaries:
@@ -47,15 +28,23 @@ def get_submissions(n, sub, db='psaw', proxies=None):
      """
 
     if db == 'psaw':
-        submissions_api = SubmissionsPsaw(proxy_list=proxies, sub=sub)
-    elif db == 'pmaw':
-        submissions_api = SubmissionsPmaw(proxy_list=proxies, sub=sub)
+        submissions_api = SubmissionsPsaw(sub=sub, proxy_list=proxies)
     elif db == 'praw':
-        submissions_api = SubmissionsPraw(proxy_list=proxies, sub=sub)
+        submissions_api = SubmissionsPraw(sub=sub, credentials_file=praw_cred_file, proxy_list=proxies)
+    elif db == 'hybrid':
+        submissions_api = SubmissionsHybrid(sub=sub, credentials_file=praw_cred_file, proxy_list=proxies)
     else:
-        raise ValueError("Invalid db '{}'. Valid choices:\npraw, psaw, pmaw".format(db))
+        raise ValueError("Invalid db '{}'. Valid choices:\npsaw, praw, hybrid".format(db))
 
-    recent, prev = submissions_api.get_submissions(n)
+    mid_interval = datetime.today() - timedelta(hours=n)
+    ts_mid = int(mid_interval.timestamp())
+    ts_start = int((mid_interval - timedelta(hours=n)).timestamp())
+    ts_end = int(datetime.today().timestamp())
+
+    search_filter = ['title', 'link_flair_text', 'selftext', 'score']
+    sanity = ['wallstreetbets', 'wallstreetbetsELITE', 'SatoshiStreetBets']
+    recent = submissions_api.get_submissions(start=ts_mid, end=ts_end, search_filter=search_filter, sanity_list=sanity)
+    prev = submissions_api.get_submissions(start=ts_start, end=ts_mid, search_filter=search_filter, sanity_list=sanity)
 
     if all(value == [] for value in prev.values()):
         raise Exception('No results for the previous time period.')
@@ -236,12 +225,14 @@ def get_financial_stats(results_df, threads=True, advanced=False):
     if advanced:
         module_name_map.update({'summaryDetail': summary_measures, 'financialData': financial_measures})
 
+    fast_yahoo = FastYahoo(threads=threads)
+
     # check for valid symbols and get quick stats
     ticker_list = list(results_df.index.values)
     quick_stats_df = get_quick_stats(ticker_list, threads)
     valid_ticker_list = list(quick_stats_df.index.values)
 
-    summary_stats_df = download_advanced_stats(valid_ticker_list, module_name_map, threads)
+    summary_stats_df = fast_yahoo.download_advanced_stats(valid_ticker_list, module_name_map)
     results_df_valid = results_df.loc[valid_ticker_list]
     results_df = pd.concat([results_df_valid, quick_stats_df, summary_stats_df], axis=1)
     results_df.index.name = 'Ticker'
@@ -255,7 +246,8 @@ def get_quick_stats(ticker_list, threads=True):
                    'regularMarketPrice': 'price', 'regularMarketChangePercent': '1DayChange%', 
                    'floatShares': 'float'}
 
-    unprocessed_df = download_quick_stats(ticker_list, quick_stats, threads)
+    fast_yahoo = FastYahoo(threads=threads)
+    unprocessed_df = fast_yahoo.download_quick_stats(ticker_list, quick_stats)
 
     processed_stats_table = []
     # TODO: if looping over rows becomes slow: vectorize. (Tested with 270 symbols and it's practically instantaneous)
