@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """ AutoDD: Automatically does the so called Due Diligence for you. """
-
-__author__ = "Fufu Fang kaito1410 Napo2k gobbedy"
-__copyright__ = "The GNU General Public License v3.0"
-
 import os
 import sys
 import locale
@@ -13,9 +9,10 @@ import math
 import warnings
 import pandas as pd
 from tabulate import tabulate
-from FastYahoo import FastYahoo
-from Submissions import SubmissionsPsaw, SubmissionsPraw, SubmissionsHybrid
+from src.FastYahoo import FastYahoo
+from src.Submissions import SubmissionsPsaw, SubmissionsPraw, SubmissionsHybrid
 from datetime import datetime, timedelta
+
 
 def get_submissions(n, sub, db='psaw', proxies=None, praw_cred_file=None):
 
@@ -59,6 +56,7 @@ def get_submissions(n, sub, db='psaw', proxies=None, praw_cred_file=None):
 
     return recent, prev
 
+
 def get_ticker_scores(sub_results_dict):
     """
     Return two dictionaries:
@@ -68,7 +66,7 @@ def get_ticker_scores(sub_results_dict):
     --rocket_scores_dict: a dictionary whose keys are the tickers found in reddit submissions, and value is the number
     of rocker emojis found for each ticker.
 
-    :param sub_gen_dict: A dictionary of generators for each subreddit, as outputted by get_submission_generators
+    :param sub_results_dict: A dictionary of results for each subreddit, as outputted by get_submissions
     """
 
     # rocket emoji
@@ -130,6 +128,7 @@ def get_ticker_scores(sub_results_dict):
 
     return sub_scores_dict, rocket_scores_dict
 
+
 def score_change_df(current_scores_dict, prev_scores_dict, interval):
     """
     Combine two score dictionaries, one from the current time interval, and one from the past time interval
@@ -175,6 +174,7 @@ def score_change_df(current_scores_dict, prev_scores_dict, interval):
 
     return df
 
+
 def filter_df(df, min_val):
     """
     Filter the score dataframe
@@ -196,6 +196,7 @@ def filter_df(df, min_val):
     drop_index = pd.Index(BANNED_WORDS).intersection(df.index)
     df = df.drop(index=drop_index)
     return df
+
 
 def get_financial_stats(results_df, threads=True, advanced=False):
 
@@ -238,6 +239,7 @@ def get_financial_stats(results_df, threads=True, advanced=False):
     results_df.index.name = 'Ticker'
 
     return results_df
+
 
 def get_quick_stats(ticker_list, threads=True):
 
@@ -311,6 +313,7 @@ def get_quick_stats(ticker_list, threads=True):
 
     return stats_df
 
+
 def print_df(df, filename, writecsv):
 
     # turn index (symbols) into regular column for printing purposes
@@ -321,15 +324,15 @@ def print_df(df, filename, writecsv):
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
 
     # save the file to the same dir as the AutoDD.py script
-    completeName = os.path.join(sys.path[0], filename)
+    filepath = os.path.join(sys.path[0], filename)
 
     if writecsv:
-        completeName += '.csv'
-        df.to_csv(completeName, index=False, float_format='%.3f', mode='a', encoding=locale.getpreferredencoding())
-        print(file=open(completeName, "a"))
+        filepath += '.csv'
+        df.to_csv(filepath, index=False, float_format='%.3f', mode='a', encoding=locale.getpreferredencoding())
+        print(file=open(filepath, "a"))
     else:
-        completeName += '.txt'
-        with open(completeName, "a") as file:
+        filepath += '.txt'
+        with open(filepath, "a") as file:
             file.write("date and time now = ")
             file.write(dt_string)
             file.write('\n')
@@ -337,4 +340,4 @@ def print_df(df, filename, writecsv):
             file.write('\n\n')
 
     print("Wrote to file successfully: ")
-    print(completeName)
+    print(filepath)

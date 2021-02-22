@@ -1,8 +1,8 @@
-from Submissions import SubmissionsPsaw, SubmissionsHybrid
-from utils import *
+from src.Submissions import SubmissionsPsaw, SubmissionsHybrid
+from src.utils import *
 from html import unescape
 
-filename = "proxies.txt"
+filename = "../input/proxies.txt"
 proxy_list = get_proxies(filename)
 
 submissions_api_psaw = SubmissionsPsaw(proxy_list=proxy_list)

@@ -1,5 +1,5 @@
 from proxy_checker import ProxyChecker
-import utils
+from src import utils
 from concurrent.futures import ThreadPoolExecutor
 
 def check_proxy(proxy_str):
@@ -16,7 +16,7 @@ def check_proxy(proxy_str):
     check_dict = checker.check_proxy(proxy=proxy, user=user, password=password)
     return check_dict
 
-filename = "proxies.txt"
+filename = "../input/proxies.txt"
 proxy_list = utils.get_proxies(filename)
 
 # get rid of empty string in list if there

@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 """ AutoDD: Automatically does the so called Due Diligence for you. """
 import argparse
-import time
-import utils
+from time import time
+from src import utils
 from collections import Counter
 from AutoDD import *
+
 
 def main():
     # Instantiate the parser
@@ -48,26 +49,25 @@ def main():
     parser.add_argument('--cred_file', nargs='?', type=str, default=None,
                     help='Provide a file containing praw credentials. Required if db=praw or db=hybrid.')
 
-
-    start = time.time()
+    start = time()
 
     args = parser.parse_args()
 
     # get a list of proxies from proxy file
     proxies = utils.get_proxies(args.proxy_file)
 
-    print("Getting submissions...")
-    recent, prev = get_submissions(args.interval, args.sub, args.db, proxies, args.cred_file)
+    print("Getting submissions and generating scores dataframe...")
 
-    print("Searching for tickers...")
+    # get submissions and computer scores
+    recent, prev = get_submissions(args.interval, args.sub, args.db, proxies, args.cred_file)
     current_scores, current_rocket_scores = get_ticker_scores(recent)
     prev_scores, prev_rocket_scores = get_ticker_scores(prev)
 
-    print("Populating results...")
+    # populate score dataframe
     results_df = score_change_df(current_scores, prev_scores, args.interval)
     results_df = filter_df(results_df, args.min)
 
-    print("Counting rockets...")
+    # count rockets
     rockets = Counter(current_rocket_scores) + Counter(prev_rocket_scores)
     results_df.insert(loc=4, column='Rockets', value=pd.Series(rockets, dtype='int32'))
     results_df = results_df.fillna(value=0).astype({'Rockets': 'int32'})
@@ -78,10 +78,11 @@ def main():
     # Sort by Total (sort = 1), Recent ( = 2), Prev ( = 3), Change ( = 4), Rockets ( = 5)
     results_df.sort_values(by=results_df.columns[args.sort - 1], inplace=True, ascending=False)
 
-    print_df(results_df, 'output\' + args.filename, args.csv)
-    total_time = str(timedelta(seconds=round(time.time() - start)))
+    print_df(results_df, 'output\\' + args.filename, args.csv)
+    total_time = str(timedelta(seconds=round(time() - start)))
     print("AutoDD took " + total_time + " (H:MM:SS).")
     print("Dataframe has {} rows".format(len(results_df.index)))
+
 
 if __name__ == '__main__':
     main()
