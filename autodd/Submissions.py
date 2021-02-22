@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-import src.utils
+import autodd.utils
 from psaw import PushshiftAPI as psaw_api
 from warnings import warn, catch_warnings
 from praw import Reddit
@@ -75,7 +75,7 @@ class SubmissionsPsaw(Submissions):
         arg_dict = {'after': start, 'before': end, 'subreddit': subreddit, 'filter': search_filter}
 
         # generate time-sliced arguments
-        arg_dict_list = src.utils.gen_slices(len(self.proxy_list), arg_dict)
+        arg_dict_list = autodd.utils.gen_slices(len(self.proxy_list), arg_dict)
 
         # get generators that perform pushshift requests for their respective slices (using their respective proxies)
         generator_list = [self.api_list[i].search_submissions(**arg_dict_list[i]) for i in range(len(self.proxy_list))]
@@ -123,7 +123,7 @@ class SubmissionsHybrid(Submissions):
         arg_dict = {'after': start, 'before': end, 'subreddit': subreddit, 'filter': search_filter}
 
         # generate time-sliced arguments
-        arg_dict_list = src.utils.gen_slices(len(self.proxy_list), arg_dict)
+        arg_dict_list = autodd.utils.gen_slices(len(self.proxy_list), arg_dict)
 
         # get generators that perform pushshift requests for their respective slices (using their respective proxies)
         generator_list = [self.api_list[i].search_submissions(**arg_dict_list[i]) for i in range(len(self.proxy_list))]
@@ -158,7 +158,7 @@ class SubmissionsHybrid(Submissions):
         if sanity:
             end_gap = (end - results[0]['created_utc']) / 60
             if end_gap > 20:
-                s, e = src.utils.localtime(start), src.utils.localtime(end)
+                s, e = autodd.utils.localtime(start), autodd.utils.localtime(end)
                 warn("{}: No data for last {:.1f} minutes. Interval: {} to {}.".format(subreddit, end_gap, s, e))
 
         return results
