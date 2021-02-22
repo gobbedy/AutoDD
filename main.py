@@ -3,9 +3,9 @@
 """ AutoDD: Automatically does the so called Due Diligence for you. """
 import argparse
 from time import time
-from src import utils
+from autodd import utils
 from collections import Counter
-from AutoDD import *
+from autodd import *
 
 
 def main():

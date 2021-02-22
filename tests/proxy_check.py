@@ -1,5 +1,5 @@
 from proxy_checker import ProxyChecker
-from src import utils
+from autodd import utils
 from concurrent.futures import ThreadPoolExecutor
 
 def check_proxy(proxy_str):

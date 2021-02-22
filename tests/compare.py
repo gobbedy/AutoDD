@@ -1,5 +1,5 @@
-from src.Submissions import SubmissionsPsaw, SubmissionsHybrid
-from src.utils import *
+from autodd.Submissions import SubmissionsPsaw, SubmissionsHybrid
+from autodd.utils import *
 from html import unescape
 
 filename = "../input/proxies.txt"

@@ -1,0 +1,6 @@
+/***************************************************************************
+ * Copyright (C) Guillaume Perrault-Archambault, Abhijeet Chauhan - All Rights Reserved
+ * Unauthorized copying of this file, via any medium is strictly prohibited
+ * Proprietary and confidential
+ * Written by Guillaume Perrault-Archambault <gperr050@uottawa.ca>, February 2021
+***************************************************************************/

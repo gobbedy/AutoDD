@@ -1,4 +1,4 @@
-## About AutoDD Rev 3
+## About autodd Rev 3
 
 AutoDD = Automatically does the "due diligence" for you. 
 If you want to know what stocks people are talking about on reddit, this little program might help you. 
@@ -29,7 +29,7 @@ Version 3 adds further options and improvements:
 
 	- Ability to use proxies for further speedup (roughly proportional to the number of proxies)
 
-    - Fix the reddit scores (Rev 2 had incorrect scores)
+    - Fix the reddit scores, using hybrid of psaw/praw
 
     - Add additional popular subreddits (wallstreetbetELITE, satoshistreetbets)
 
@@ -41,17 +41,15 @@ Version 3 adds further options and improvements:
 
 Python (tested on python 3.8.1) https://www.python.org/downloads/release/python-381/
 
-Pip - python get-pip.py https://phoenixnap.com/kb/install-pip-windows#:~:text=PIP%20is%20automatically%20installed%20with,9%2B%20and%20Python%203.4%2B.
-
 psaw - pip install psaw https://pypi.org/project/psaw/
 
 praw - pip install praw https://pypi.org/project/praw/
 
+pandas - pip install tabulate https://pypi.org/project/pandas/
+
 requests - pip install requests https://pypi.org/project/requests/
 
 tabulate - pip install tabulate https://pypi.org/project/tabulate/
-
-pandas - pip install tabulate https://pypi.org/project/pandas/
 
 The requirements can be installed by running install_requirements.bat / install_requirements.sh
 
@@ -134,7 +132,7 @@ This will produce the following help text:
 
 	usage: main.py [-h] [--interval [INTERVAL]] [--min [MIN]] [--adv] [--sub [SUB]] [--sort [SORT]] [--filename [FILENAME]]
 
-	AutoDD Optional Parameters
+	autodd Optional Parameters
 
 	optional arguments:
 	-h, --help            show this help message and exit
@@ -144,7 +142,6 @@ This will produce the following help text:
 	--yahoo               Using this parameter shows yahoo finance information on the ticker, makes the script run slower!
 	--sub [SUB]           Choose a different subreddit to search for tickers in, default is pennystocks
 	--sort [SORT]         Sort the results table by descending order of score, 1 = sort by total score, 2 = sort by recent score, 3 = sort by previous score, 4 = sort by change in score, 5 = sort by # of rocket emojis
-	--allsub              Using this parameter searchs from one subreddit only, default subreddit is r/pennystocks.
 	--csv                 Using this parameter produces a table_records.csv file, rather than a .txt file
 	--filename [FILENAME]
 							Change the file name from table_records.txt to whatever you wish

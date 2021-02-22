@@ -9,8 +9,8 @@ import math
 import warnings
 import pandas as pd
 from tabulate import tabulate
-from src.FastYahoo import FastYahoo
-from src.Submissions import SubmissionsPsaw, SubmissionsPraw, SubmissionsHybrid
+from autodd.FastYahoo import FastYahoo
+from autodd.Submissions import SubmissionsPsaw, SubmissionsPraw, SubmissionsHybrid
 from datetime import datetime, timedelta
 
 
@@ -323,7 +323,7 @@ def print_df(df, filename, writecsv):
     # dd/mm/YY H:M:S
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
 
-    # save the file to the same dir as the AutoDD.py script
+    # save the file to the same dir as the autodd.py script
     filepath = os.path.join(sys.path[0], filename)
 
     if writecsv:
