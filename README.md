@@ -1,4 +1,4 @@
-## About autodd Rev 3
+## About AutoDD Rev 3
 
 AutoDD = Automatically does the "due diligence" for you. 
 If you want to know what stocks people are talking about on reddit, this little program might help you. 
@@ -37,50 +37,21 @@ Version 3 adds further options and improvements:
 
     - Refactor the code (use pandas dataframes, object orientation)
 
-## Requirements 
+## Installation 
 
 Python (tested on python 3.8.1) https://www.python.org/downloads/release/python-381/
 
-psaw - pip install psaw https://pypi.org/project/psaw/
+    1. Install pycurl -- pip does *not* work for this package. On Windows, follow this instruction: https://stackoverflow.com/a/53598619/8112889. On Linux: https://stackoverflow.com/a/58959751/8112889.
 
-praw - pip install praw https://pypi.org/project/praw/
-
-pandas - pip install tabulate https://pypi.org/project/pandas/
-
-requests - pip install requests https://pypi.org/project/requests/
-
-tabulate - pip install tabulate https://pypi.org/project/tabulate/
-
-The requirements can be installed by running install_requirements.bat / install_requirements.sh
+    2. pip install git+https://github.com/gobbedy/autodd.git
 
 ## Running
-
-Watch the setup video here https://www.youtube.com/watch?v=YwfwJYjnBFU
-
-To set up the dependencies on Windows 10
-
-	1. Install python 3.8 and make sure you add python to the path variable during installation
-	2. Run install_requirements.bat, it should open a terminal and install the dependencies
-	3. If all dependencies are installed successfully, run run_auto_dd.bat
-	4. After 1-2 minutes, you should find a table_records.txt file in the AutoDD folder
-	5. To generate a new table, simply run run_auto_dd.bat again, it will append a new table to the table_records.txt file
-
-To set up the dependencies on Linux/MacOSX
 	
-	1. Install python 3.8 and Pip3 https://medium.com/swlh/installing-python-and-pip-on-mac-72b7639a58
-	2. Run install_requirements.sh, it should open a terminal and install the dependencies
-	3. If all dependencies are installed successfully, run run_auto_dd.sh
-	4. After 1-2 minutes, you should find a table_records.txt file in the AutoDD folder
-	5. To generate a new table, simply run run_auto_dd.bat again, it will append a new table to the table_records.txt file
+To generate a new table in ```output/ticker_table.txt```
+	```dd.py```
 
-
-For Advanced Users:
-	
-	1. Simply open the terminal (powershell or command prompt on windows, terminal on linux/MacOSX) and navigate to the AutoDD folder, then type:
-		
-		python main.py -h
-		
-	2. Follow the help document and set up the optional parameters as you'd like. 
+For help:
+    ```dd.py -h```
 
 ## Columns Explained
 
@@ -192,7 +163,7 @@ Sort
 
 Csv 
 
-	1. Outputs table_records.csv file
+	1. Outputs ticker_table.csv file
 
 Filename
 
