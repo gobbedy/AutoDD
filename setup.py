@@ -27,7 +27,9 @@ setup(
     packages=find_packages(),
     url="https://github.com/gobbedy/autodd",
     install_requires=INSTALL_REQUIRES,
-    extras_require=TEST_REQUIRES,
+    extras_require={
+        "test": TEST_REQUIRES,
+    },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Programming Language :: Python :: 3 :: Only",
