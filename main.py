@@ -39,7 +39,7 @@ def main():
     parser.add_argument('--csv', default=False, action='store_true',
                     help='Using this parameter produces a table_records.csv file, rather than a .txt file.')
 
-    parser.add_argument('--filename', nargs='?', const='table_records', type=str, default='table_records',
+    parser.add_argument('--filename', nargs='?', const='ticker_table', type=str, default='ticker_table',
                     help='Change the file name from table_records to whatever you wish.')
 
     parser.add_argument('--proxy_file', nargs='?', type=str, default=None,
@@ -78,7 +78,7 @@ def main():
     # Sort by Total (sort = 1), Recent ( = 2), Prev ( = 3), Change ( = 4), Rockets ( = 5)
     results_df.sort_values(by=results_df.columns[args.sort - 1], inplace=True, ascending=False)
 
-    print_df(results_df, args.filename, args.csv)
+    print_df(results_df, 'output\' + args.filename, args.csv)
     total_time = str(timedelta(seconds=round(time.time() - start)))
     print("AutoDD took " + total_time + " (H:MM:SS).")
     print("Dataframe has {} rows".format(len(results_df.index)))
