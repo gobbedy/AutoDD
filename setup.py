@@ -1,12 +1,12 @@
 from setuptools import setup, find_packages
 
 INSTALL_REQUIRES = [
-    "praw==7.1.4",
-    "psaw==0.0.12",
-    "pandas==1.2.1",
-    "tabulate==0.8.7",
-    "requests==2.25.1",
-    "proxy_checker==0.6"
+    "praw",
+    "psaw",
+    "pandas",
+    "tabulate",
+    "requests",
+    "proxy_checker"
 ]
 
 TEST_REQUIRES = [

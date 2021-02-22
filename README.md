@@ -11,7 +11,7 @@ Rev 3 Author - Guillaume Perrault-Archambault https://github.com/gobbedy
 
 The original AutoDD produced a simple table of the stock ticker and the number of threads talking about the ticker.
 
-Version 2 of AutoDD adds some options and features that the original did not have.
+Version 2 of AutoDD added some options and features that the original did not have.
 
 	- ability to display a change in results (ie, an increase or decrease of score from the previous day to today)
 	
@@ -39,23 +39,20 @@ Version 3 adds further options and improvements:
 
 ## Installation 
 
-Python (tested on python 3.8.1) https://www.python.org/downloads/release/python-381/
+Install python (tested on [python 3.9](https://www.python.org/downloads/release/python-392/))
 
-    1. Install pycurl -- pip does *not* work for this package. On Windows, follow this instruction: https://stackoverflow.com/a/53598619/8112889. On Linux: https://stackoverflow.com/a/58959751/8112889.
-
-    2. pip install git+https://github.com/gobbedy/autodd.git
+1. Install ```pycurl``` -- pip does *not* work for this package. On Windows, follow [these instructions](https://stackoverflow.com/a/53598619/8112889). On Linux, [follow these](https://stackoverflow.com/a/58959751/8112889).
+2. Intall autodd: ```pip install git+https://github.com/gobbedy/autodd.git```
 
 ## Running
 	
-To generate a new table in ```output/ticker_table.txt```
-	```dd.py```
+To generate a new table in ```output/ticker_table.txt```, run ```dd.py```
 
-For help:
-    ```dd.py -h```
+For list of options: ```dd.py -h```
 
 ## Columns Explained
 
-Code - Ticker Name
+Ticker - Ticker Name
 
 Total - Total score on the ticker for r/pennystock subreddit. Higher means more discussions/chatter about this ticker
 
