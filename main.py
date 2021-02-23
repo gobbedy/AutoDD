@@ -5,7 +5,7 @@ import argparse
 from time import time
 from autodd import utils
 from collections import Counter
-from autodd import *
+from autodd_temp import *
 
 
 def main():
@@ -41,7 +41,7 @@ def main():
                     help='Using this parameter produces a table_records.csv file, rather than a .txt file.')
 
     parser.add_argument('--filename', nargs='?', const='ticker_table', type=str, default='ticker_table',
-                    help='Change the file name from table_records to whatever you wish.')
+                    help='Set output filename. ".csv" or ".txt" is appended depending if the --csv option is used.')
 
     parser.add_argument('--proxy_file', nargs='?', type=str, default=None,
                     help='Optionally provide a file containing proxies to speed up reddit retrieval.')

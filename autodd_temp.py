@@ -323,16 +323,13 @@ def print_df(df, filename, writecsv):
     # dd/mm/YY H:M:S
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
 
-    # save the file to the same dir as the autodd.py script
-    filepath = os.path.join(sys.path[0], filename)
-
     if writecsv:
-        filepath += '.csv'
-        df.to_csv(filepath, index=False, float_format='%.3f', mode='a', encoding=locale.getpreferredencoding())
-        print(file=open(filepath, "a"))
+        filename += '.csv'
+        df.to_csv(filename, index=False, float_format='%.3f', mode='a', encoding=locale.getpreferredencoding())
+        print(file=open(filename, "a"))
     else:
-        filepath += '.txt'
-        with open(filepath, "a") as file:
+        filename += '.txt'
+        with open(filename, "a") as file:
             file.write("date and time now = ")
             file.write(dt_string)
             file.write('\n')
@@ -340,4 +337,4 @@ def print_df(df, filename, writecsv):
             file.write('\n\n')
 
     print("Wrote to file successfully: ")
-    print(filepath)
+    print(filename)
