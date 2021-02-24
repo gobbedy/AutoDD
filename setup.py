@@ -17,7 +17,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="autodd",
-    version="0.0.1",
+    version="0.0.2",
     author="Guillaume Perrault-Archambault",
     author_email="gperr050@uottawa.ca",
     description="Finds reddit score and sentiment for trending reddit tickers and reports financials",

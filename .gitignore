@@ -1,7 +1,7 @@
 .env/
 Pipfile
 Pipfile.lock
-output/ticker_table.txt
+output/autodd.txt
 output/ticker_table.csv
 __pycache__/
 *.pyc

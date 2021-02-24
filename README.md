@@ -42,7 +42,7 @@ Version 3 adds further options and improvements:
 Install python (tested on [python 3.9](https://www.python.org/downloads/release/python-392/))
 
 1. Install ```pycurl``` -- pip does *not* work for this package. On Windows, follow [these instructions](https://stackoverflow.com/a/53598619/8112889). On Linux, [follow these](https://stackoverflow.com/a/58959751/8112889).
-2. Intall autodd: ```pip install git+https://github.com/gobbedy/autodd.git```
+2. Install autodd: ```pip install git+https://github.com/gobbedy/autodd.git```
 
 ## Running
 	

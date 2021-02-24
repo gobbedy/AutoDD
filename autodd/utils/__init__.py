@@ -1,9 +1,10 @@
 import copy
 from datetime import datetime, timedelta
-from os.path import isfile
+
 
 def localtime(utc_timestamp):
     return datetime.fromtimestamp(utc_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+
 
 def gen_slices(num_splits, payload, search_window=365):
     """Creates a list of slices"""
@@ -31,26 +32,3 @@ def mapslice(payload, after, before):
     payload['before'] = before
     payload['after'] = after
     return payload
-
-def get_proxies(proxy_filename):
-
-    if proxy_filename:
-        if not isfile(proxy_filename):
-            raise ValueError("Invalid filename: {}".format(proxy_filename))
-        proxies = []
-        with open(proxy_filename) as file:
-            for line in file:
-                # remove comments and whitespace
-                line = line.split("#")[0].strip()
-                if line:
-                    # if line contains "passhtrough", retrieve data without proxy as one thread
-                    if line == "passthrough":
-                        proxies.append("")
-                    else:
-                        proxies.append(line)
-    else:
-        # ie no proxy
-        proxies = [""]
-
-    return proxies
-

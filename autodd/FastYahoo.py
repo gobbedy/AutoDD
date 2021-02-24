@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from itertools import repeat
 from os import cpu_count
 
+
 class FastYahoo:
 
     def __init__(self, threads=True):
@@ -41,13 +42,12 @@ class FastYahoo:
 
         return financial_data_df
 
-
     def download_quick_stats(self, symbol_list, quick_stats_dict):
         """
         Downloads select ("quick") stats for many tickers using minimal number of http requests. Splits the ticker list
         into groups of 1000 and performs one request per group. eg if list has 2350 tickers, will split into 2 groups of
-        1000 tickers and one group with the remaining 350 tickers, and will get quick stats with only 3 http requests. Only
-        returns those tickers that are valid, thus can be used to validate tickers efficiently.
+        1000 tickers and one group with the remaining 350 tickers, and will get quick stats with only 3 http requests.
+        Only returns those tickers that are valid, thus can be used to validate tickers efficiently.
         """
         # through trial and error, 1179 was the max without returning an error, but that number feels too arbitrary
         max_params = 1000
@@ -110,7 +110,7 @@ class FastYahoo:
             result.raise_for_status()
 
         json_dict = result.json()
-        if not "quoteSummary" in json_dict:
+        if "quoteSummary" not in json_dict:
             return None
         if json_dict['quoteSummary']['result'] is None:
             return None
@@ -121,8 +121,8 @@ class FastYahoo:
     @staticmethod
     def quick_stats_request(request_symbol_list, field_list):
         """
-        Returns quick stats for up to 1000 tickers in one request. Only returns those tickers that are valid, thus can be
-        used to validate tickers efficiently.
+        Returns quick stats for up to 1000 tickers in one request. Only returns those tickers that are valid, thus can
+        be used to validate tickers efficiently.
         """
         params = {
             'formatted': 'True',
@@ -134,7 +134,7 @@ class FastYahoo:
             result.raise_for_status()
 
         json_dict = result.json()
-        if not "quoteResponse" in json_dict:
+        if "quoteResponse" not in json_dict:
             return None
         data_list = json_dict['quoteResponse']['result']
 
